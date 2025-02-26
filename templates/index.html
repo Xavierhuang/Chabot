@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Athena - Activity Finder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        #chat-container {
+            width: 80%;
+            max-width: 800px;
+            height: 500px;
+            border: 1px solid #ddd;
+            margin: 20px auto;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .input-container {
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+        #message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0066cc;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            clear: both;
+            float: left;
+        }
+        .user-message {
+            background-color: #0084ff;
+            color: white;
+            float: right;
+        }
+        .bot-message {
+            background-color: #e9ecef;
+            color: black;
+            float: left;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #0084ff;
+            margin: 0;
+        }
+        .header p {
+            color: #666;
+            margin: 5px 0;
+        }
+        #chat-container::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        /* Modify loading spinner styles */
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0084ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Modify thinking container */
+        .thinking {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 15px;
+            background-color: #e9ecef;
+            color: #666;
+            max-width: 80%;
+            float: left;
+            clear: both;
+        }
+        .thinking span {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Athena</h1>
+        <p>Your Personal Activity Finder Assistant</p>
+    </div>
+    <div id="chat-container">
+        <!-- Remove the static thinking bubble, we'll add it dynamically -->
+    </div>
+    <div class="input-container">
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        // Add a welcome message when the page loads
+        window.onload = function() {
+            sendMessage("start");
+        }
+
+        function addMessage(message, className) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${className}`;
+            messageDiv.textContent = message;
+            
+            // Remove existing thinking bubble if it exists
+            const existingThinking = document.getElementById('thinking');
+            if (existingThinking) {
+                existingThinking.remove();
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showThinking() {
+            const chatContainer = document.getElementById('chat-container');
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinking';
+            thinkingDiv.className = 'message bot-message thinking';
+            thinkingDiv.innerHTML = '<div class="loading-spinner"></div><span>Thinking...</span>';
+            chatContainer.appendChild(thinkingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function sendMessage(initialMessage) {
+            const messageInput = document.getElementById('message-input');
+            const message = initialMessage || messageInput.value;
+            if (message.trim() === '') return;
+
+            if (!initialMessage) {
+                // Add user message to chat
+                addMessage(message, 'user-message');
+                messageInput.value = '';
+            }
+
+            // Show thinking bubble after user message
+            showThinking();
+
+            // Send message to server
+            fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({message: message})
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove thinking bubble and add response
+                const thinking = document.getElementById('thinking');
+                if (thinking) thinking.remove();
+                addMessage(data.response, 'bot-message');
+            })
+            .catch(error => {
+                // Remove thinking bubble and add error message
+                const thinking = document.getElementById('thinking');
+                if (thinking) thinking.remove();
+                addMessage("Sorry, there was an error processing your request.", 'bot-message');
+            });
+        }
+
+        // Allow sending message with Enter key
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html> 
